@@ -14,12 +14,24 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post("/api/auth/login", formData);
-            localStorage.setItem("token", response.data.token);
+            const response = await axios.post("http://localhost:8080/user/login", formData); // Updated the API URL
+            localStorage.setItem("token", response.data.token); // Store token in localStorage
             toast.success("Login successful!");
-            navigate("/dashboard");
+
+            // Redirect based on the userType
+            const userType = response.data.userType;
+
+            if (userType === "Elder") {
+                navigate("/elder-dashboard"); // Redirect to elder's dashboard
+            } else if (userType === "Caretaker") {
+                navigate("/caretaker-dashboard"); // Redirect to caretaker's dashboard
+            } else if (userType === "Familymember") {
+                navigate("/family-dashboard"); // Redirect to family member's dashboard
+            } else {
+                toast.error("User type is not recognized!");
+            }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Login failed");
+            toast.error(error.response?.data?.message || "Login failed. Please check your credentials.");
         }
     };
 
@@ -40,6 +52,7 @@ const Login = () => {
                 <div className="lg:w-1/2 p-6 flex flex-col justify-center">
                     <h2 className="text-2xl font-semibold text-gray-800 text-center mb-4">Login</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        <label className="text-lg font-medium text-gray-700">Email</label>
                         <input
                             type="email"
                             name="email"
@@ -48,6 +61,8 @@ const Login = () => {
                             onChange={handleChange}
                             required
                         />
+                        {/* Password */}
+                        <label className="text-lg font-medium text-gray-700">Password</label>
                         <input
                             type="password"
                             name="password"
