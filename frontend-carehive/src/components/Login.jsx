@@ -50,16 +50,34 @@ const Login = () => {
 
         try {
             const response = await axios.post("http://localhost:8080/user/login", formData);
-            localStorage.setItem("token", response.data.token);
-            localStorage.setItem("user", JSON.stringify(response.data.user));  // Store user data
-            toast.success("Login successful!");
 
-            const userType = response.data.userType || "Elder";  // Default to Elder if no userType
-            navigate(userType === "Elder" ? "/elder" : "/caretaker");
-        } catch {
-            toast.error("Please enter correct email / password.");
-            setFormData({ email: "", password: "" });
-            setErrors({ email: "Incorrect email.", password: "Incorrect password." });
+            if (response.status === 200) {
+                sessionStorage.setItem("userId", response.data.id);
+                sessionStorage.setItem("token", response.data.token);
+                sessionStorage.setItem("user", JSON.stringify(response.data.user));
+                console.log(response.data.token);
+                toast.success("Login successful!");
+
+                const userType = response.data.userType || "Elder";
+                const user = response.data.user;
+
+                navigate(userType === "Elder" ? "/elder" : "/caretaker", { state: { user } });
+            } else {
+                console.error("Login failed with status:", response.status);
+                toast.error(response.data.message || "Login failed. Please check your credentials.");
+                setErrors({ email: "Incorrect email.", password: "Incorrect password." });
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+
+            if (error.response) {
+                toast.error(error.response.data.message || "Login failed. Please check your credentials.");
+                setErrors({ email: "Incorrect email.", password: "Incorrect password." });
+            } else if (error.request) {
+                toast.error("Login failed. No response from server.");
+            } else {
+                toast.error("Login failed. Please try again later.");
+            }
         }
     };
 
@@ -107,6 +125,10 @@ const Login = () => {
                                 required
                             />
                             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                            {/* Forgot Password Link */}
+                            <p className="text-blue-600 text-sm mt-2 text-right">
+                                <a href="/forgot-password" className="hover:underline">Forgot password?</a>
+                            </p>
                         </div>
 
                         {/* Submit Button */}

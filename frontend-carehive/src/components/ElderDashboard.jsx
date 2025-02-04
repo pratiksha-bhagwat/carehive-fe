@@ -1,42 +1,57 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import axios from 'axios';
+import img from "../assets/logo.png";
+
 
 const ElderDashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
-    // Static User Data
-    const user = { name: "John Doe" };
-
-    // Static Caretakers Data
-    const caretakers = [
-        { id: 1, name: 'Alice', contact: '555-123-4567', services: ['Health Care', 'Assistance'], availableSlots: ['9:00 AM', '1:00 PM', '3:00 PM'] },
-        { id: 2, name: 'Bob', contact: '555-234-5678', services: ['Cooking', 'Housekeeping'], availableSlots: ['10:00 AM', '2:00 PM', '4:00 PM'] }
-    ];
-
-    // Static Notifications
-    const notifications = [
-        "Your booking with Alice is confirmed for 2025-02-01 at 10:00 AM.",
-        "Reminder: Your caretaker Bob will arrive tomorrow at 2:00 PM."
-    ];
-
-    // State
+    const [caretakers, setCaretakers] = useState([]);
     const [selectedCaretaker, setSelectedCaretaker] = useState(null);
     const [selectedService, setSelectedService] = useState('');
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedTime, setSelectedTime] = useState('');
 
-    // Logout Handler
+    const userId = sessionStorage.getItem("userId");
+
+    useEffect(() => {
+        if (!userId) {
+            toast.error("User not logged in. Please log in first.");
+            navigate('/login');
+            return;
+        }
+
+        axios.get(`http://localhost:8080/user/caretakers`)
+            .then(response => setCaretakers(response.data))
+            .catch(error => console.error('Error fetching caretakers:', error));
+    }, [userId, navigate]);
+
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        if (userId) {
+            axios.get(`http://localhost:8080/user/userDetails/${userId}`)
+                .then(response => {
+                    setUser(response.data);
+                })
+                .catch(error => {
+                    console.error("Error fetching user details", error);
+                });
+        }
+    }, [userId]);
+
     const handleLogout = () => {
+        sessionStorage.clear();
         navigate('/login');
     };
 
-    // Emergency Alert
     const handleEmergency = () => {
         toast.success('Emergency message sent!');
     };
 
-    // Booking Submit Handler
     const handleBookingSubmit = () => {
         if (!selectedCaretaker || !selectedService || !selectedDate || !selectedTime) {
             toast.error("Please fill in all fields before submitting.");
@@ -49,17 +64,19 @@ const ElderDashboard = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Navbar */}
-            <nav className="bg-blue-700 text-white p-4 flex justify-between items-center">
+            <nav className="bg-blue-300 text-white p-4 flex justify-between items-center">
                 <div className="text-2xl font-bold">
-                    <Link to="/home">Logo</Link>
+                    <Link to="/home"><img src={img} alt="Logo" className="h-10" /></Link>
                 </div>
                 <div className="flex space-x-4">
-                    <Link to="/home" className="text-blue-300 hover:text-white">Home</Link>
-                    <Link to="/profile" className="text-blue-300 hover:text-white">Profile</Link>
-                    <Link to="/bookings" className="text-blue-300 hover:text-white">Bookings</Link>
-                    <Link to="/emergency" className="text-blue-300 hover:text-white">Emergency</Link>
-                    <span className="text-lg">{user.name}</span>
-                    <button onClick={handleLogout} className="text-red-600 hover:text-red-800">Logout</button>
+                    <Link to="/home" className={`hover:text-white border-2 rounded-2xl p-2 ${location.pathname === "/home" ? "text-white font-bold" : "text-blue-700"}`}>
+                        Home
+                    </Link>
+                    <Link to="/profile" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Profile</Link>
+                    <Link to="/bookings" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Bookings</Link>
+                    <Link to="/emergency" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Emergency</Link>
+                    {user && <span className="text-lg border-2 rounded-2xl p-2">{user.name}</span>}
+                    <button onClick={handleLogout} className="text-red-600 hover:text-red-800 border-2 rounded-2xl p-2">Logout</button>
                 </div>
             </nav>
 
@@ -68,28 +85,29 @@ const ElderDashboard = () => {
                 {/* Left Section - Caretakers List */}
                 <div className="flex-1 space-y-6 bg-white p-4 rounded-lg shadow-md">
                     <h2 className="text-xl font-bold text-blue-700">CareTakers</h2>
-                    {caretakers.map((caretaker) => (
-                        <div key={caretaker.id} className="border-b p-4">
-                            <h3 className="font-semibold text-blue-700">{caretaker.name}</h3>
-                            <p><strong>Contact:</strong> {caretaker.contact}</p>
-                            <p><strong>Services:</strong> {caretaker.services.join(', ')}</p>
-                            <button
-                                onClick={() => setSelectedCaretaker(caretaker)}
-                                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                            >
-                                Select {caretaker.name}
-                            </button>
-                        </div>
-                    ))}
+                    {caretakers.length > 0 ? (
+                        caretakers.map((caretaker) => (
+                            <div key={caretaker.id} className="border-b p-4">
+                                <h3 className="font-semibold text-blue-700">{caretaker.name}</h3>
+                                <p><strong>Contact:</strong> {caretaker.contact}</p>
+                                <button
+                                    onClick={() => setSelectedCaretaker(caretaker)}
+                                    className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                                >
+                                    Select {caretaker.name}
+                                </button>
+                            </div>
+                        ))
+                    ) : (
+                        <p>Loading caretakers...</p>
+                    )}
                 </div>
 
                 {/* Right Section - Notifications */}
                 <div className="flex-1 space-y-6">
                     <div className="bg-white p-4 rounded-lg shadow-md">
                         <h2 className="text-xl font-bold text-blue-700">Notifications</h2>
-                        {notifications.map((notification, index) => (
-                            <p key={index} className="bg-gray-200 p-3 rounded-lg mb-2">{notification}</p>
-                        ))}
+                        <p className="bg-gray-200 p-3 rounded-lg mb-2">No new notifications</p>
                     </div>
 
                     {/* Emergency Button */}
@@ -116,9 +134,13 @@ const ElderDashboard = () => {
                                 className="w-full p-2 border rounded"
                             >
                                 <option value="">Select a Service</option>
-                                {selectedCaretaker.services.map((service) => (
-                                    <option key={service} value={service}>{service}</option>
-                                ))}
+                                {selectedCaretaker.services && selectedCaretaker.services.length > 0 ? (
+                                    selectedCaretaker.services.map((service, index) => (
+                                        <option key={index} value={service}>{service}</option>
+                                    ))
+                                ) : (
+                                    <option disabled>No services available</option>
+                                )}
                             </select>
                         </div>
 
@@ -142,9 +164,13 @@ const ElderDashboard = () => {
                                 className="w-full p-2 border rounded"
                             >
                                 <option value="">Select Time</option>
-                                {selectedCaretaker.availableSlots.map((time) => (
-                                    <option key={time} value={time}>{time}</option>
-                                ))}
+                                {selectedCaretaker.availableSlots && selectedCaretaker.availableSlots.length > 0 ? (
+                                    selectedCaretaker.availableSlots.map((time, index) => (
+                                        <option key={index} value={time}>{time}</option>
+                                    ))
+                                ) : (
+                                    <option disabled>No available slots</option>
+                                )}
                             </select>
                         </div>
 
