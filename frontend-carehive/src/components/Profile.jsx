@@ -166,19 +166,19 @@ const Profile = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Navbar */}
-            <nav className="bg-blue-300 text-white p-4 flex justify-between items-center">
-                <div className="text-2xl font-bold">
-                    <Link to={getHomeLink()}><img src={img} alt="Logo" className="h w-50" /></Link>
-                </div>
-                <div className="flex space-x-4">
-                    <Link to={getHomeLink()} className={`hover:text-white border-2 rounded-2xl p-2 ${location.pathname === "/home" ? "text-white font-bold" : "text-blue-700"}`}>
-                        Home
-                    </Link>
-                    <Link to="/profile" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Profile</Link>
-                    <Link to="/bookings" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Bookings</Link>
-                    <Link to="/emergency" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Emergency</Link>
-                    {profileData.name && <span className="text-lg border-2 rounded-2xl p-2">{profileData.name}</span>}
-                    <button onClick={() => { sessionStorage.clear(); navigate('/login'); }} className="text-red-600 hover:text-red-800 border-2 rounded-2xl p-2">Logout</button>
+<nav className="bg-blue-300 text-white p-4 flex justify-between items-center">
+            <div className="text-2xl font-bold">
+                <Link to={getHomeLink()}><img src={img} alt="Logo" className="h-10" /></Link>
+            </div>
+            <div className="flex space-x-4">
+                <Link to={getHomeLink()} className={`hover:text-white ${location.pathname === "/home" ? "text-white font-bold" : "text-blue-700"}`}>
+                    Home
+                </Link>
+                <Link to="/profile" className="text-blue-700 hover:text-white">Profile</Link>
+                <Link to="/bookings" className="text-blue-700 hover:text-white">Bookings</Link>
+                <Link to="/emergency" className="text-blue-700 hover:text-white">Emergency</Link>
+                {profileData && <span className="text-lg text-green-700">{profileData.name}</span>}
+                <button onClick={() => { sessionStorage.clear(); navigate('/login'); }} className="text-red-600 hover:text-red-800">Logout</button>
                 </div>
             </nav>
 

@@ -5,7 +5,7 @@ import CareTakerDashboard from "./components/CareTakerDashboard";
 import ElderDashboard from "./components/ElderDashboard";
 import Profile from "./components/Profile";
 import ForgotPassword from "./components/ForgotPassword";  // Import the ForgotPassword component
-
+import ResetPassword from "./components/ResetPassword";
 import PropTypes from 'prop-types';
 
 const ProtectedRoute = ({ children }) => {
@@ -25,9 +25,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />  {/* Add Forgot Password route */}
+        
+        {/* Protected Routes */}
         <Route path="/elder" element={<ProtectedRoute><ElderDashboard /></ProtectedRoute>} />
         <Route path="/caretaker" element={<ProtectedRoute><CareTakerDashboard /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+        {/* ResetPassword with query params (e.g., /resetPassword?token=xyz) */}
+        <Route path="/resetPassword" element={<ResetPassword />} />  {/* Reset Password route */}
       </Routes>
     </Router>
   );
