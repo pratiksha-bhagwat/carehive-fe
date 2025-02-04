@@ -125,10 +125,6 @@ const Login = () => {
                                 required
                             />
                             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-                            {/* Forgot Password Link */}
-                            <p className="text-blue-600 text-sm mt-2 text-right">
-                                <a href="/forgot-password" className="hover:underline">Forgot password?</a>
-                            </p>
                         </div>
 
                         {/* Submit Button */}
@@ -136,12 +132,22 @@ const Login = () => {
                             Login
                         </button>
                     </form>
+                    {/* Flex container for links */}
+                    <div className="flex justify-between mt-4">
+                        {/* Register Link */}
+                        <p className="text-gray-700 text-lg">
+                            Don&apos;t have an account?{" "}
+                            <a href="/register" className="text-blue-600 font-semibold">Register</a>
+                        </p>
 
-                    {/* Register Link */}
-                    <p className="text-center mt-4 text-gray-700 text-lg">
-                        Don&apos;t have an account?{" "}
-                        <a href="/register" className="text-blue-600 font-semibold">Register</a>
-                    </p>
+                        {/* Don't remember password? */}
+                        <p className="text-gray-700 text-lg">
+                            Don&apos;t remember password?{" "}
+                            <a href="/forgot-password" className="text-blue-600 font-semibold">Forgot Password</a>
+                        </p>
+                    </div>
+
+
                 </div>
             </div>
         </div>

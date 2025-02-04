@@ -23,7 +23,7 @@ const ForgotPassword = () => {
         }
 
         try {
-            await axios.post("http://localhost:8080/user/forgot-password", { email });
+            await axios.post("http://localhost:8080/user/forgotPassword", { email });
 
             toast.success("Password reset email sent!");
             navigate("/login");
