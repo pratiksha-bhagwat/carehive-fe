@@ -6,8 +6,10 @@ import { toast } from "react-toastify";
 const Login = () => {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [errors, setErrors] = useState({ email: "", password: "" });
+    const [isLoading, setIsLoading] = useState(false); // Added loading state
     const navigate = useNavigate();
 
+    // Validate form inputs
     const validateForm = () => {
         let newErrors = { email: "", password: "" };
         let isValid = true;
@@ -35,11 +37,13 @@ const Login = () => {
         return isValid;
     };
 
+    // Handle input changes
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
         setErrors({ ...errors, [e.target.name]: "" });
     };
 
+    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -48,22 +52,38 @@ const Login = () => {
             return;
         }
 
+        setIsLoading(true); // Set loading state to true
+
         try {
             const response = await axios.post("http://localhost:8080/user/login", formData);
 
             if (response.status === 200) {
-                sessionStorage.setItem("userId", response.data.id);
+                // Store user data and token in sessionStorage
+                sessionStorage.setItem("userId", response.data.user.id);
                 sessionStorage.setItem("token", response.data.token);
                 sessionStorage.setItem("user", JSON.stringify(response.data.user));
-                console.log(response.data.token);
+                console.log("User data:", response.data.user);
+                console.log("ID:", response.data.user.id);
                 toast.success("Login successful!");
 
-                const userType = response.data.userType || "Elder";
-                const user = response.data.user;
-
-                navigate(userType === "Elder" ? "/elder" : "/caretaker", { state: { user } });
+                // Redirect based on user type
+                const userType = response.data.user.userType || "Elder";
+                switch (userType) {
+                    case "Elder":
+                        navigate("/elder");
+                        break;
+                    case "Caretaker":
+                        navigate("/caretaker");
+                        break;
+                    case "Admin":
+                        navigate("/admin");
+                        break;
+                    default:
+                        toast.error("Unknown user type. Redirecting to default dashboard.");
+                        navigate("/");
+                        break;
+                }
             } else {
-                console.error("Login failed with status:", response.status);
                 toast.error(response.data.message || "Login failed. Please check your credentials.");
                 setErrors({ email: "Incorrect email.", password: "Incorrect password." });
             }
@@ -78,11 +98,13 @@ const Login = () => {
             } else {
                 toast.error("Login failed. Please try again later.");
             }
+        } finally {
+            setIsLoading(false); // Reset loading state
         }
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-5">
+        <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-100 to-gray-300 p-5">
             <div className="bg-white shadow-xl rounded-2xl p-8 flex flex-col lg:flex-row w-full max-w-4xl">
                 {/* Left Side - CareHive Information */}
                 <div className="lg:w-1/2 p-6 flex flex-col justify-center items-center bg-blue-100 rounded-2xl">
@@ -128,26 +150,31 @@ const Login = () => {
                         </div>
 
                         {/* Submit Button */}
-                        <button className="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition">
-                            Login
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition"
+                            disabled={isLoading} // Disable button when loading
+                        >
+                            {isLoading ? "Logging in..." : "Login"}
                         </button>
                     </form>
+
                     {/* Flex container for links */}
                     <div className="flex justify-between mt-4">
                         {/* Register Link */}
-                        <p className="text-gray-700 text-lg">
+                        <p className="text-gray-700 text-sm">
                             Don&apos;t have an account?{" "}
+                            <br />
                             <a href="/register" className="text-blue-600 font-semibold">Register</a>
                         </p>
 
-                        {/* Don't remember password? */}
-                        <p className="text-gray-700 text-lg">
+                        {/* Forgot Password Link */}
+                        <p className="text-gray-700 text-sm">
                             Don&apos;t remember password?{" "}
+                            <br />
                             <a href="/forgot-password" className="text-blue-600 font-semibold">Forgot Password</a>
                         </p>
                     </div>
-
-
                 </div>
             </div>
         </div>
