@@ -1,96 +1,107 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from './Navbar';
-import axios from 'axios';
 
 const CaretakerDashboard = () => {
     const navigate = useNavigate();
-
-    // State for caretaker details
-    const [caretaker, setCaretaker] = useState(null);
+    const [caretaker, setCaretaker] = useState({});
     const [serviceRequests, setServiceRequests] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [earnings, setEarnings] = useState([]);
-
-    // Get userId from sessionStorage
+    const [elderDetails, setElderDetails] = useState(null); // Store a single elder's details
+    const [services, setServices] = useState({});
     const userId = sessionStorage.getItem("userId");
+    const token = sessionStorage.getItem("token");
 
-    // Fetch caretaker details from API (using the userId)
     useEffect(() => {
         if (!userId) {
             toast.error("User not logged in. Please log in first.");
-            navigate('/login'); // Redirect if user is not logged in
+            navigate('/login');
             return;
         }
 
-        axios.get(`http://localhost:8080/user/userDetails/${userId}`)
-            .then(response => {
-                setCaretaker(response.data); // Set caretaker data
-            })
-            .catch(error => {
-                console.error('Error fetching caretaker details:', error);
-            });
+        axios.get(`/user/userDetails/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(response => setCaretaker(response.data))
+        .catch(error => console.error('Error fetching caretaker details:', error));
+
+        axios.get(`/booking/list/${userId}/Caretaker`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(response => {
+            const pendingRequests = response.data.filter(request => request.status === "PENDING");
+            if (pendingRequests.length > 0) {
+                axios.get(`/user/userDetails/${pendingRequests[0].elderId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+                .then(response => setElderDetails(response.data))
+                .catch(error => console.error('Error fetching elder details:', error));
+            }
+            setServiceRequests(pendingRequests);
+        })
+        .catch(error => {
+            console.error('Error fetching service requests:', error);
+            toast.error('Error fetching service requests.');
+        });
+
+        axios.get(`/user/notifications/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(response => setNotifications(response.data))
+        .catch(error => console.error('Error fetching notifications:', error));
+
+        axios.get(`/user/earnings/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(response => setEarnings(response.data))
+        .catch(error => console.error('Error fetching earnings:', error));
+
+        axios.get("/service/list", {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        .then(response => {
+            const serviceData = response.data.reduce((acc, service) => {
+                acc[service.serviceId] = service.serviceTitle;
+                return acc;
+            }, {});
+            setServices(serviceData);
+        })
+        .catch(() => toast.error("Error fetching services"));
     }, [userId, navigate]);
 
-    // Fetch service requests, notifications, and earnings
-    useEffect(() => {
-        if (userId) {
-            // Fetch service requests for the caretaker
-            axios.get(`http://localhost:8080/user/userDetails/${userId}`)
-                .then(response => setServiceRequests(response.data))
-                .catch(error => console.error('Error fetching service requests:', error));
-
-            // Fetch notifications
-            axios.get(`http://localhost:8080/user/userDetails/${userId}`)
-                .then(response => setNotifications(response.data))
-                .catch(error => console.error('Error fetching notifications:', error));
-
-            // Fetch earnings
-            axios.get(`http://localhost:8080/user/userDetails/${userId}`)
-                .then(response => setEarnings(response.data))
-                .catch(error => console.error('Error fetching earnings:', error));
-        }
-    }, [userId]);
-
-    // Logout function
-    const handleLogout = () => {
-        sessionStorage.clear();  // Clear session storage on logout
-        navigate('/login');
-    };
-
-    // Emergency Alert
-    const handleEmergency = () => {
-        toast.success('Emergency message sent!');
-    };
-
-    // Handle Service Request (Accept or Reject)
-    const handleServiceRequest = (requestId, action) => {
-        // You can implement your logic here to handle the action
-        // For example, updating the request status in the database
-        axios.post(`http://localhost:8080/user/serviceRequestAction`, {
-            requestId,
-            action
+    const handleServiceRequest = (bookingId, action) => {
+        axios.patch(`/booking/${bookingId}/${action}`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
         })
         .then(() => {
-            if (action === 'accept') {
-                toast.success('Service request accepted!');
-            } else if (action === 'reject') {
-                toast.success('Service request rejected!');
-            }
-            // Refresh the service requests after action
-            setServiceRequests(serviceRequests.filter(request => request.id !== requestId));
+            toast.success(`Service request ${action}ed!`);
+            setServiceRequests(serviceRequests.filter(request => request.bookingId !== bookingId));
         })
         .catch(error => {
             console.error('Error handling service request:', error);
             toast.error('Error handling service request!');
         });
     };
-    
+
+    const handleLogout = () => {
+        sessionStorage.removeItem("userId");
+        navigate('/login');
+    };
+
+    const handleEmergency = () => {
+        navigate('/emergency');
+    };
+
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* Navbar */}
-            <Navbar caretaker={caretaker} onLogout={handleLogout} />
+        <div className="min-h-screen p-4 bg-gradient-to-r from-blue-100 to-gray-300">
+            <Navbar
+                userType={caretaker?.userType || ""}
+                userName={caretaker?.name}
+                onLogout={handleLogout}
+            />
 
             {/* Main Content */}
             <div className="flex flex-wrap justify-between gap-8 p-6">
@@ -99,28 +110,39 @@ const CaretakerDashboard = () => {
                     <h2 className="text-xl font-bold text-blue-700">Service Requests</h2>
                     {serviceRequests.length > 0 ? (
                         serviceRequests.map((request) => (
-                            <div key={request.id} className="border-b p-4">
-                                <p><strong>User:</strong> {request.elderlyName}</p>
-                                <p><strong>Service:</strong> {request.serviceType}</p>
-                                <p><strong>Date:</strong> {request.date}</p>
-                                <p><strong>Location:</strong> {request.location}</p>
-                                <button
-                                    onClick={() => handleServiceRequest(request.id, 'accept')}
-                                    className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                                >
-                                    Accept
-                                </button>
-                                <button
-                                    onClick={() => handleServiceRequest(request.id, 'reject')}
-                                    className="mt-2 ml-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                                >
-                                    Reject
-                                </button>
+                            <div key={request.bookingId} className="p-4 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer transition duration-300">
+                                {/* Dynamically load the elder details for each request */}
+                                <p><strong>User:</strong>{elderDetails?.name || 'Loading...'}</p>
+                                <p><strong>Service:</strong> {services[request.serviceId] || 'Unknown Service'}</p>
+                                <p><strong>Scheduled Date:</strong> {new Date(request.datetime).toLocaleString()}</p>
+                                <p><strong>Hours:</strong> {request.bookingHrs}</p>
+                                <p><strong>Price:</strong> ₹{request.price}</p>
+                                <p><strong>Status:</strong> {request.status}</p>
+                                <div className="mt-4">
+                                    {/* Only show Accept and Reject buttons if status is "PENDING" */}
+                                    {request.status === "PENDING" && (
+                                        <div className="mt-6 flex justify-end space-x-4">
+                                            <button
+                                                onClick={() => handleServiceRequest(request.bookingId, 'CONFIRMED')}
+                                                className="bg-green-500 text-white px-6 py-2 rounded-md transition-colors hover:bg-green-600"
+                                            >
+                                                Accept
+                                            </button>
+                                            <button
+                                                onClick={() => handleServiceRequest(request.bookingId, 'CANCELLED')}
+                                                className="bg-red-500 text-white px-6 py-2 rounded-md transition-colors hover:bg-red-600"
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ))
                     ) : (
                         <p>No new requests</p>
                     )}
+
                 </div>
 
                 {/* Right Section - Notifications */}

@@ -1,116 +1,234 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import axios from 'axios';
-import img from "../assets/logo.png";
-
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "axios";
+import Select from "react-select";
+import Navbar from "./Navbar";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const ElderDashboard = () => {
     const navigate = useNavigate();
-    const location = useLocation();
-
-    const [caretakers, setCaretakers] = useState([]);
+    const [user, setUser] = useState(null);
+    const [servicesList, setServicesList] = useState([]);
     const [selectedCaretaker, setSelectedCaretaker] = useState(null);
-    const [selectedService, setSelectedService] = useState('');
-    const [selectedDate, setSelectedDate] = useState('');
-    const [selectedTime, setSelectedTime] = useState('');
+    const [selectedService, setSelectedService] = useState("");
+    const [selectedDateTime, setSelectedDateTime] = useState("");
+    const [caretakers, setCaretakers] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [serviceOptions, setServiceOptions] = useState([]);
+    const [selectedPrice, setSelectedPrice] = useState(null);
+    const [hours, setHours] = useState(0);
+    const [selectedId, setSelectedId] = useState(null);
+    const [bookingSuccessMessage, setBookingSuccessMessage] = useState(null);
+    const [isBooking, setIsBooking] = useState(false);
 
     const userId = sessionStorage.getItem("userId");
 
     useEffect(() => {
-        if (!userId) {
+        const token = sessionStorage.getItem("token");
+        if (!token) {
             toast.error("User not logged in. Please log in first.");
-            navigate('/login');
+            navigate("/login");
             return;
         }
 
-        axios.get(`http://localhost:8080/user/caretakers`)
-            .then(response => setCaretakers(response.data))
-            .catch(error => console.error('Error fetching caretakers:', error));
-    }, [userId, navigate]);
-
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-        if (userId) {
-            axios.get(`http://localhost:8080/user/userDetails/${userId}`)
-                .then(response => {
-                    setUser(response.data);
-                })
-                .catch(error => {
-                    console.error("Error fetching user details", error);
+        const fetchUserData = async () => {
+            try {
+                const response = await axios.get(`/user/userDetails/${userId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
-        }
-    }, [userId]);
+                setUser(response.data);
+            } catch {
+                toast.error("Error fetching user details.");
+            }
+        };
+
+        const fetchServices = async () => {
+            try {
+                const response = await axios.get("/service/list", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setServicesList(response.data);
+            } catch {
+                toast.error("Failed to fetch services.");
+            }
+        };
+
+        const fetchCaretakers = async () => {
+            try {
+                const response = await axios.get(`/user/caretakers`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setCaretakers(response.data);
+            } catch {
+                toast.error("Error fetching caretakers.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchUserData();
+        fetchServices();
+        fetchCaretakers();
+    }, [userId, navigate]);
 
     const handleLogout = () => {
         sessionStorage.clear();
-        navigate('/login');
+        navigate("/login");
     };
 
     const handleEmergency = () => {
-        toast.success('Emergency message sent!');
+        toast.success("Emergency alert sent!");
     };
 
-    const handleBookingSubmit = () => {
-        if (!selectedCaretaker || !selectedService || !selectedDate || !selectedTime) {
-            toast.error("Please fill in all fields before submitting.");
-            return;
-        }
+    const handleBookingSubmit = async () => {
+        const date = new Date(selectedDateTime);
+        const options = {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        };
 
-        toast.success(`Booking for ${selectedService} with ${selectedCaretaker.name} on ${selectedDate} at ${selectedTime} has been submitted!`);
+        const istDate = date.toLocaleString('en-IN', options);
+        const [datePart, timePart] = istDate.split(', ');
+        const [day, month, year] = datePart.split('/');
+        const formattedDateTime = `${year}-${month}-${day} ${timePart}`;
+
+        const elderIdInt = parseInt(userId, 10);
+        const hoursInt = parseInt(hours, 10);
+
+        const bookingData = {
+            elderId: elderIdInt,
+            serviceId: selectedId,
+            caretakerId: selectedCaretaker.id,
+            datetime: formattedDateTime,
+            bookingHrs: hoursInt,
+            price: selectedPrice,
+            status: "PENDING",
+            message: `Booking created successfully for Caretaker ${selectedCaretaker.name}`
+        };
+        setIsBooking(true);
+
+        try {
+            const token = sessionStorage.getItem("token");
+            await axios.post("/booking/create", bookingData, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setBookingSuccessMessage(`Successfully Booking created for Caretaker ${selectedCaretaker.name}`);
+            setTimeout(() => {
+                setIsBooking(false);
+                setBookingSuccessMessage(null);
+                setSelectedService("");
+                setSelectedPrice(null);
+                setSelectedDateTime("");
+                setHours(0);
+                setSelectedCaretaker(null);
+                setSelectedId(null);
+            }, 3000);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Booking failed.");
+            setIsBooking(false);
+        }
+    };
+
+    const handleCaretakerSelect = async (caretaker) => {
+        setSelectedCaretaker(caretaker);
+
+        try {
+            const token = sessionStorage.getItem("token");
+            const response = await axios.get(`/user/userDetails/${caretaker.id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const updatedCaretaker = response.data;
+
+            if (updatedCaretaker.serviceIds && updatedCaretaker.serviceIds.length > 0) {
+                const filteredServices = servicesList.filter(service =>
+                    updatedCaretaker.serviceIds.includes(service.serviceId)
+                );
+
+                const serviceOptions = filteredServices.map(service => ({
+                    value: service.serviceTitle,
+                    label: service.serviceTitle,
+                    price: service.hourlyPrice,
+                    id: service.serviceId
+                }));
+
+                setServiceOptions(serviceOptions);
+                setSelectedService("");
+                setSelectedPrice(null);
+                setSelectedId(null);
+            } else {
+                toast.error("Caretaker does not have any available services.");
+            }
+        } catch {
+            toast.error("Error fetching caretaker data.");
+        }
+    };
+
+    const handleServiceSelect = (selectedOption) => {
+        setSelectedService(selectedOption.value);
+        setSelectedPrice(selectedOption.price);
+        setSelectedId(selectedOption.id);
+    };
+
+    const handleHoursChange = (event) => {
+        const value = event.target.value;
+        if (value >= 1) {
+            setHours(value);
+        }
     };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* Navbar */}
-            <nav className="bg-blue-300 text-white p-4 flex justify-between items-center">
-                <div className="text-2xl font-bold">
-                    <Link to="/home"><img src={img} alt="Logo" className="h-10" /></Link>
-                </div>
-                <div className="flex space-x-4">
-                    <Link to="/home" className={`hover:text-white border-2 rounded-2xl p-2 ${location.pathname === "/home" ? "text-white font-bold" : "text-blue-700"}`}>
-                        Home
-                    </Link>
-                    <Link to="/profile" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Profile</Link>
-                    <Link to="/bookings" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Bookings</Link>
-                    <Link to="/emergency" className="text-blue-700 hover:text-white border-2 rounded-2xl p-2">Emergency</Link>
-                    {user && <span className="text-lg border-2 rounded-2xl p-2">{user.name}</span>}
-                    <button onClick={handleLogout} className="text-red-600 hover:text-red-800 border-2 rounded-2xl p-2">Logout</button>
-                </div>
-            </nav>
+        <div className="min-h-screen p-4 bg-gradient-to-r from-blue-100 to-gray-300">
+            <Navbar userType={user?.userType || ""} userName={user?.name || ""} onLogout={handleLogout} />
 
-            {/* Main Content */}
             <div className="flex flex-wrap justify-between gap-8 p-6">
-                {/* Left Section - Caretakers List */}
-                <div className="flex-1 space-y-6 bg-white p-4 rounded-lg shadow-md">
-                    <h2 className="text-xl font-bold text-blue-700">CareTakers</h2>
-                    {caretakers.length > 0 ? (
+                <div className="flex-1 space-y-6 bg-white p-6 rounded-xl shadow-lg">
+                    <h2 className="text-xl font-bold text-blue-600">CareTakers</h2>
+                    {isLoading ? (
+                        <p className="text-blue-500">Loading caretakers...</p>
+                    ) : !Array.isArray(caretakers) || caretakers.length === 0 ? (
+                        <p className="text-blue-500">No caretakers available.</p>
+                    ) : (
                         caretakers.map((caretaker) => (
-                            <div key={caretaker.id} className="border-b p-4">
-                                <h3 className="font-semibold text-blue-700">{caretaker.name}</h3>
+                            <div key={caretaker.id} className="p-4 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer transition duration-300">
+                                <h3 className="font-semibold text-blue-600">{caretaker.name}</h3>
                                 <p><strong>Contact:</strong> {caretaker.contact}</p>
+                                <p><strong>Email:</strong> {caretaker.email}</p>
                                 <button
-                                    onClick={() => setSelectedCaretaker(caretaker)}
+                                    onClick={() => handleCaretakerSelect(caretaker)}
                                     className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
                                 >
                                     Select {caretaker.name}
                                 </button>
                             </div>
                         ))
-                    ) : (
-                        <p>Loading caretakers...</p>
                     )}
                 </div>
 
-                {/* Right Section - Notifications */}
-                <div className="flex-1 space-y-6">
-                    <div className="bg-white p-4 rounded-lg shadow-md">
-                        <h2 className="text-xl font-bold text-blue-700">Notifications</h2>
-                        <p className="bg-gray-200 p-3 rounded-lg mb-2">No new notifications</p>
-                    </div>
 
-                    {/* Emergency Button */}
+                <div className="flex-1 space-y-6">
+                    <div className="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 className="text-xl font-bold text-blue-600">Notifications</h2>
+                        <p className="bg-blue-100 p-3 rounded-lg mb-2">No new notifications</p>
+                    </div>
                     <button
                         onClick={handleEmergency}
                         className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 w-full"
@@ -120,70 +238,82 @@ const ElderDashboard = () => {
                 </div>
             </div>
 
-            {/* Booking Form - Only Show When Caretaker is Selected */}
             {selectedCaretaker && (
-                <div className="p-6 bg-white rounded-lg shadow-md m-6">
-                    <h2 className="text-xl font-bold text-blue-700 mb-4">Book a Service with {selectedCaretaker.name}</h2>
+                <div className="p-6 bg-white rounded-xl shadow-lg m-6">
+                    <h2 className="text-xl font-bold text-blue-600 mb-4">Book a Service with {selectedCaretaker.name}</h2>
                     <div className="space-y-4">
-                        {/* Service Selection */}
+                        {/* Select Service */}
                         <div>
                             <label className="font-semibold">Select Service</label>
-                            <select
-                                value={selectedService}
-                                onChange={(e) => setSelectedService(e.target.value)}
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="">Select a Service</option>
-                                {selectedCaretaker.services && selectedCaretaker.services.length > 0 ? (
-                                    selectedCaretaker.services.map((service, index) => (
-                                        <option key={index} value={service}>{service}</option>
-                                    ))
-                                ) : (
-                                    <option disabled>No services available</option>
-                                )}
-                            </select>
-                        </div>
-
-                        {/* Date Picker */}
-                        <div>
-                            <label className="font-semibold">Select Date</label>
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="w-full p-2 border rounded"
+                            <Select
+                                value={serviceOptions.find((option) => option.value === selectedService)}
+                                onChange={handleServiceSelect}
+                                options={serviceOptions}
+                                className="w-full"
                             />
                         </div>
 
-                        {/* Time Slot Picker */}
+                        {/* Select Date & Time */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="font-semibold">Select Date </label>
+                                <DatePicker
+                                    selected={selectedDateTime}
+                                    onChange={(date) => setSelectedDateTime(date)}
+                                    dateFormat="yyyy-MM-dd"
+                                    minDate={new Date()}
+                                    className="w-full p-3 border-2 border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="font-semibold">Select Time </label>
+                                <DatePicker
+                                    selected={selectedDateTime}
+                                    onChange={(date) => setSelectedDateTime(date)}
+                                    showTimeSelect
+                                    showTimeSelectOnly
+                                    timeFormat="h:mm aa"
+                                    timeIntervals={60}
+                                    dateFormat="h:mm aa"
+                                    minDate={new Date()}
+                                    className="w-full p-3 border-2 border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
+                                />
+                            </div>
+                        </div>
+
+
+                        {/* Select Number of Hours */}
                         <div>
-                            <label className="font-semibold">Select Time</label>
-                            <select
-                                value={selectedTime}
-                                onChange={(e) => setSelectedTime(e.target.value)}
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="">Select Time</option>
-                                {selectedCaretaker.availableSlots && selectedCaretaker.availableSlots.length > 0 ? (
-                                    selectedCaretaker.availableSlots.map((time, index) => (
-                                        <option key={index} value={time}>{time}</option>
-                                    ))
-                                ) : (
-                                    <option disabled>No available slots</option>
-                                )}
-                            </select>
+                            <label className="font-semibold text-gray-700">Number of Hours</label>
+                            <input
+                                type="number"
+                                value={hours}
+                                onChange={handleHoursChange}
+                                min="1"
+                                className="w-full p-3 border-2 border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400"
+                            />
                         </div>
 
                         {/* Submit Button */}
                         <button
                             onClick={handleBookingSubmit}
                             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 w-full"
+                            disabled={!selectedService || !selectedDateTime || selectedPrice === null || isBooking}
                         >
                             Submit Booking
                         </button>
                     </div>
                 </div>
             )}
+
+            {/* Booking Success Message */}
+            {bookingSuccessMessage && (
+                <div className="fixed top-0 left-0 right-0 bg-green-500 text-white text-center p-4">
+                    {bookingSuccessMessage}
+                </div>
+            )}
+
         </div>
     );
 };

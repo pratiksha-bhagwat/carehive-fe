@@ -24,17 +24,15 @@ const ForgotPassword = () => {
 
         try {
             await axios.post("http://localhost:8080/user/forgotPassword", { email });
-
-            toast.success("Password reset email sent!");
+            toast.success("Password reset link sent!");
             navigate("/login");
         } catch {
-            toast.error("Error sending reset email. Please try again.");
-            setError("Failed to send reset email.");
+            toast.error("Error sending reset email.");
         }
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-5">
+        <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-100 to-gray-300 p-5">
             <div className="bg-white shadow-xl rounded-2xl p-8 flex flex-col lg:flex-row w-full max-w-4xl">
                 {/* Left Side - CareHive Information */}
                 <div className="lg:w-1/2 p-6 flex flex-col justify-center items-center bg-blue-100 rounded-2xl">

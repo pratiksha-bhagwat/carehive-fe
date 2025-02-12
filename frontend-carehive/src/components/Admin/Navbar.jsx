@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import img from "../assets/logo.png";
+import img from "../../assets/logo.png";
 import PropTypes from "prop-types";
 import { useState } from "react";
-import checkout from "../assets/check-out.png";
+import checkout from "../../assets/check-out.png";
 
 const Navbar = ({ userType, userName, onLogout }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,23 +14,23 @@ const Navbar = ({ userType, userName, onLogout }) => {
     return (
         <nav className="bg-gradient-to-r from-blue-300 to-blue-600 text-white rounded-xl p-4 px-4 flex justify-between items-center shadow-lg relative pb-4">
             {/* Logo */}
-            <Link to={userType === "Elder" ? "/elder" : "/caretaker"} className="text-2xl font-bold flex items-center space-x-2">
+            <Link to="/admin" className="text-2xl font-bold flex items-center space-x-2">
                 <img src={img} alt="Logo" className="h-11" />
             </Link>
 
             {/* Desktop Navigation (Hidden in Mobile) */}
             <div className="hidden md:flex space-x-6 items-center">
-                <Link to={userType === "Elder" ? "/elder" : "/caretaker"} className="text-blue-200 hover:text-white font-semibold transition duration-200">
+                <Link to="/admin" className="text-blue-200 hover:text-white font-semibold transition duration-200">
                     Home
                 </Link>
-                <Link to="/profile" className="text-blue-200 hover:text-white font-semibold transition duration-200">
-                    Profile
+                <Link to="/service" className="text-blue-200 hover:text-white font-semibold transition duration-200">
+                    Services
                 </Link>
-                <Link to="/bookings" className="text-blue-200 hover:text-white font-semibold transition duration-200">
-                    Bookings
+                <Link to="/appointments" className="text-blue-200 hover:text-white font-semibold transition duration-200">
+                    Appointments
                 </Link>
-                <Link to="/emergency" className="text-blue-200 hover:text-white font-semibold transition duration-200">
-                    Emergency
+                <Link to="/caretakers" className="text-blue-200 hover:text-white font-semibold transition duration-200">
+                    Caretakers
                 </Link>
 
                 {userName && <span className="text-lg text-white font-semibold">{userName}</span>}
@@ -54,14 +54,14 @@ const Navbar = ({ userType, userName, onLogout }) => {
                         <Link to={userType === "Elder" ? "/elder" : "/caretaker"} className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
                             Home
                         </Link>
-                        <Link to="/profile" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
-                            Profile
+                        <Link to="/service" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
+                            Services
                         </Link>
-                        <Link to="/bookings" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
-                            Bookings
+                        <Link to="/appointments" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
+                            Appointments
                         </Link>
-                        <Link to="/emergency" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
-                            Emergency
+                        <Link to="/caretakers" className="text-blue-200 hover:text-white font-semibold transition duration-200" onClick={toggleMenu}>
+                            Caretakers
                         </Link>
 
                         {userName && <span className="text-lg text-white font-semibold">{userName}</span>}

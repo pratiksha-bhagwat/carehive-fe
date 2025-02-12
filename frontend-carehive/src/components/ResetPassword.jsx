@@ -7,6 +7,7 @@ const ResetPassword = () => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState(""); // State to manage success message visibility
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
@@ -21,28 +22,33 @@ const ResetPassword = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+
         if (!newPassword || !confirmPassword) {
             setError("Both fields are required.");
             return;
         }
-    
+
         if (newPassword !== confirmPassword) {
             setError("Passwords do not match.");
             return;
         }
-    
+
         try {
             // Send POST request with new password as plain text
             const response = await axios.post(
-                `http://localhost:8080/user/resetPassword?token=${token}`, 
+                `http://localhost:8080/user/resetPassword?token=${token}`,
                 newPassword,  // Sending the plain password directly in the body
                 { headers: { "Content-Type": "application/json" } }
             );
-    
+
             if (response.status === 200) {
-                toast.success("Password reset successful!");
-                navigate("/login");  // Redirect to login after successful password reset
+                // Set the success message and show it on the screen
+                setSuccessMessage("Password reset successful!");
+
+                // Hide the success message after 1 second and redirect to login
+                setTimeout(() => {
+                    navigate("/login");  // Redirect to login after 1 second
+                }, 1000);
             } else {
                 toast.error("Failed to reset password. Try again.");
             }
@@ -52,12 +58,19 @@ const ResetPassword = () => {
             setError("Invalid or expired token.");
         }
     };
-    
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-5">
+        <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-100 to-gray-300 p-5">
             <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
                 <h2 className="text-2xl font-semibold text-gray-800 text-center mb-4">Reset Password</h2>
+                
+                {/* Success Message */}
+                {successMessage && (
+                    <div className="bg-green-500 text-white p-4 rounded-lg mb-4 text-center">
+                        {successMessage}
+                    </div>
+                )}
+                
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="text-lg font-medium text-gray-700">New Password</label>
