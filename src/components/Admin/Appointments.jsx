@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
-import Navbar from "./Navbar";
 
 const Appointments = () => {
     const [bookings, setBookings] = useState({
@@ -12,38 +10,16 @@ const Appointments = () => {
         COMPLETED: []
     });
     const [isLoading, setIsLoading] = useState(true);
-    const [user, setUser] = useState(null);
-    const [userType, setUserType] = useState("");
     const [services, setServices] = useState({});
     const [caretakerDetails, setCaretakerDetails] = useState({});
     const [elderDetails, setElderDetails] = useState({});
-    const navigate = useNavigate();
 
     const token = sessionStorage.getItem("token");
-    const userId = sessionStorage.getItem("userId");
 
     useEffect(() => {
-        fetchUserData();
         fetchServices();
+        fetchBookings();
     }, []);
-
-    useEffect(() => {
-        if (userType) {
-            fetchBookings();
-        }
-    }, [userType]);
-
-    const fetchUserData = async () => {
-        try {
-            const response = await axios.get(`/user/userDetails/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setUser(response.data);
-            setUserType(response.data.userType);
-        } catch {
-            toast.error("Error fetching user details.");
-        }
-    };
 
     const fetchServices = async () => {
         try {
@@ -118,12 +94,6 @@ const Appointments = () => {
             toast.error("Failed to fetch Elder/Caretaker details.");
         }
     };
-    
-
-    const handleLogout = () => {
-        sessionStorage.clear();
-        navigate("/login");
-    };
 
     const statusColors = {
         PENDING: "border-yellow-500 text-yellow-700 bg-yellow-50",
@@ -150,8 +120,12 @@ const Appointments = () => {
                             </div>
                             <p className="text-gray-600"><strong>Service:</strong> {services[booking.serviceId] || "Loading..."}</p>
                             <p className="text-gray-600">
-                                <strong>{userType === "Caretaker" ? "Elder Name" : "Caretaker Name"}:</strong> 
-                                {userType === "Caretaker" ? (elderDetails[booking.elderId] || "Loading...") : (caretakerDetails[booking.caretakerId] || "Loading...")}
+                                <strong>Elder Name:</strong> 
+                                {elderDetails[booking.elderId] || "Loading..."}
+                            </p>
+                            <p className="text-gray-600">
+                                <strong>Caretaker Name:</strong> 
+                                {caretakerDetails[booking.caretakerId] || "Loading..."}
                             </p>
                             <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-700">
                                 <p><strong>Date:</strong> {new Date(booking.datetime).toLocaleString()}</p>
@@ -171,11 +145,6 @@ const Appointments = () => {
 
     return (
         <div className="min-h-screen p-4 bg-gradient-to-r from-blue-100 to-gray-300 space-y-8">
-            <Navbar 
-                userType={user?.userType || "User"} 
-                userName={user?.name || "Guest"} 
-                onLogout={handleLogout} 
-            />
             <h2 className="text-2xl font-bold text-blue-600">Manage Appointments</h2>
             {isLoading ? (
                 <div className="text-center text-blue-500">Loading bookings...</div>

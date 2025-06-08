@@ -2,39 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
-import Navbar from "./Navbar";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
-    const [userType, setUserType] = useState("");
     const [stats, setStats] = useState({ elders: 0, caretakers: 0, bookings: 0 });
     const [appointments, setAppointments] = useState([]);
     const [services, setServices] = useState({});
     const [elderDetails, setElderDetails] = useState({});
     const [caretakerDetails, setCaretakerDetails] = useState({});
 
-    const userId = sessionStorage.getItem("userId");
     const token = sessionStorage.getItem("token");
 
     useEffect(() => {
-        if (!userId || !token) {
+        if (!token) {
             toast.error("User not logged in. Please log in first.");
             navigate("/login");
             return;
         }
-
-        const fetchUserData = async () => {
-            try {
-                const response = await axios.get(`/user/userDetails/${userId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setUser(response.data);
-                setUserType(response.data.userType);
-            } catch {
-                toast.error("Error fetching user details.");
-            }
-        };
 
         const fetchEldersOrCaretakers = async (role) => {
             try {
@@ -138,21 +122,13 @@ const AdminDashboard = () => {
             }
         };
 
-        fetchUserData();
         fetchDashboardStats();
         fetchServices();
         fetchBookings();
-    }, [userId, navigate]);
-
-    const handleLogout = () => {
-        sessionStorage.clear();
-        navigate("/login");
-    };
+    }, [token]);
 
     return (
         <div className="min-h-screen p-4 bg-gradient-to-r from-blue-100 to-gray-300">
-            <Navbar userType={userType} userName={user?.name} onLogout={handleLogout} />
-
             <div className="flex flex-wrap justify-between gap-8 p-6">
                 <div className="w-full space-y-6 bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
                     <h2 className="text-xl font-bold text-blue-600">Overview</h2>

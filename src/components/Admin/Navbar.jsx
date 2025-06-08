@@ -1,15 +1,41 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import img from "../../assets/logo.png";
 import PropTypes from "prop-types";
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
 import checkout from "../../assets/check-out.png";
 
-const Navbar = ({ userType, userName, onLogout }) => {
+const Navbar = ({ userType, onLogout }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const token = sessionStorage.getItem("token");
+    const userId = sessionStorage.getItem("userId");
+    const [userData, setUserData] = useState({});
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
+
+    const handleLogout = () => {
+        sessionStorage.removeItem("token");
+        onLogout();
+    };
+
+    const fetchUserData = async() => {
+        try {
+            const response = await axios.get(`/user/userDetails/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setUserData(response.data);
+        } catch {
+            toast.error("Failed to fetch user details.");
+        }
+    }
+
+    useEffect(() => {
+        fetchUserData();
+    }, []);
 
     return (
         <nav className="bg-gradient-to-r from-blue-300 to-blue-600 text-white rounded-xl p-4 px-4 flex justify-between items-center shadow-lg relative pb-4">
@@ -33,9 +59,9 @@ const Navbar = ({ userType, userName, onLogout }) => {
                     Caretakers
                 </Link>
 
-                {userName && <span className="text-lg text-white font-semibold">{userName}</span>}
+                {userData.name && <span className="text-lg text-white font-semibold">{userData.name}</span>}
 
-                <button onClick={onLogout} className="text-red-300 font-semibold hover:text-red-800 transition duration-200">
+                <button onClick={handleLogout} className="text-red-300 font-semibold hover:text-red-800 transition duration-200">
                     <img src={checkout} alt="Logo" className="h-10 text-red-300"/>
                 </button>
             </div>
@@ -64,9 +90,9 @@ const Navbar = ({ userType, userName, onLogout }) => {
                             Caretakers
                         </Link>
 
-                        {userName && <span className="text-lg text-white font-semibold">{userName}</span>}
+                        {userData.name && <span className="text-lg text-white font-semibold">{userData.name}</span>}
 
-                        <button onClick={onLogout} className="text-red-500 font-semibold hover:text-red-800 transition duration-200">
+                        <button onClick={handleLogout} className="text-red-500 font-semibold hover:text-red-800 transition duration-200">
                             Logout
                         </button>
                     </div>

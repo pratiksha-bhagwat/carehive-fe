@@ -1,35 +1,16 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import Navbar from "./Navbar";
-import { useNavigate } from "react-router-dom";
 
 const CaretakerDetails = () => {
     const [caretakers, setCaretakers] = useState([]);
     const [selectedCaretaker, setSelectedCaretaker] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const token = sessionStorage.getItem("token");
-    const userId = sessionStorage.getItem("userId");
-    const [user, setUser] = useState({});
-    const [userType, setUserType] = useState("");
-    const navigate = useNavigate();
 
     useEffect(() => {
         fetchCaretakers();
-        fetchUser();
     }, []);
-
-    const fetchUser = async () => {
-        try {
-            const response = await axios.get(`/user/userDetails/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setUser(response.data);
-            setUserType(response.data.userType);
-        } catch {
-            toast.error("Error fetching user details.");
-        }
-    };
 
     const fetchCaretakers = async () => {
         try {
@@ -50,18 +31,8 @@ const CaretakerDetails = () => {
         caretaker.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const handleLogout = () => {
-        sessionStorage.clear();
-        navigate("/login");
-    }
-
     return (
         <div className="min-h-screen bg-gray-100  p-4 bg-gradient-to-r from-blue-100 to-gray-300">
-            <Navbar 
-                userType={userType || "User"} 
-                userName={user?.name || "Guest"} 
-                onLogout={handleLogout} 
-            />
             <h2 className="text-2xl font-bold text-blue-600 my-6">Caretaker Management</h2>
 
             {/* Search Bar */}
