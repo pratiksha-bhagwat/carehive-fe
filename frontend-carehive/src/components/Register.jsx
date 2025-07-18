@@ -1,245 +1,208 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useFormik } from "formik";
-import { motion } from "framer-motion";
-import { FaUser, FaPhone, FaLock} from "react-icons/fa";
-import { FiMail } from "react-icons/fi";
-import * as Yup from "yup";
-import OnBoardingPanel from "./auth/OnBoardingPanel";
-import TextField from "./TextField";
-import Button from "./Button";
-import Select from "./Select";
-import DatePicker from './DatePicker';
-import { USER_TYPES, GENDER_OPTIONS } from "../utils/constant";
 
 const Register = () => {
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        contact: "",
+        password: "",
+        confirmPassword: "",
+        gender: "",
+        date: "",
+        userType: "",
+        emergencyContact: "",
+    });
+    const [errors, setErrors] = useState({ email: ""});
+
+
     const navigate = useNavigate();
 
-    const validationSchema = Yup.object({
-        name: Yup.string().required("Name is required"),
-        email: Yup.string().email("Invalid email format").required("Email is required"),
-        contact: Yup.string().matches(/^[0-9]{10}$/, "Invalid contact number").required("Contact is required"),
-        password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-        confirmPassword: Yup.string().oneOf([Yup.ref("password"), null], "Passwords do not match").required("Confirm Password is required"),
-        gender: Yup.string().required("Gender is required"),
-        date: Yup.date().required("Date of Birth is required"),
-        userType: Yup.string().required("User Type is required"),
-        emergencyContact: Yup.string().matches(/^[0-9]{10}$/, "Invalid emergency contact number").required("Emergency Contact is required"),
-    });
-    const formik = useFormik({
-        initialValues: {
-            name: "",
-            email: "",
-            contact: "",
-            password: "",
-            confirmPassword: "",
-            gender: "",
-            date: "",
-            userType: "",
-            emergencyContact: "",
-        },
-        validationSchema,
-        onSubmit: async (values) => {
-            try {
-                const response = await axios.post("http://localhost:8080/user/register", 
-                    {
-                        ...values,
-                        date: values.date.toISOString(),
-                    },
-                    {
-                        headers: { "Content-Type": "application/json" },
-                    }
-                );
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
 
-                const userData = response.data;
-                localStorage.setItem('user', JSON.stringify(userData));
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-                toast.success("Registration successful!");
-                navigate("/login");
-            } catch {
-                toast.error("Registration failed. Please try again.");
-            }
+        if (formData.password !== formData.confirmPassword) {
+            toast.error("Passwords do not match!");
+            return;
         }
-    })
+
+        try {
+            const response = await axios.post("http://localhost:8080/user/register", formData, {
+                headers: { "Content-Type": "application/json" },
+            });
+
+            const userData = response.data;
+            localStorage.setItem('user', JSON.stringify(userData));
+
+            toast.success("Registration successful!");
+            navigate("/login");
+        } catch {
+            toast.error("Registration failed. Please try again.");
+            setErrors({ email: `User with ${formData.email} already exists`});
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 flex items-center justify-center">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row"
-            >
-                {/* Left Side - CareHive Information */}
-                <OnBoardingPanel title="Welcome!" subtitle="Please register to get started." />
+        <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-blue-100 to-gray-300 p-5">
+            <div className="bg-white shadow-xl rounded-2xl p-8 flex flex-col lg:flex-row w-full max-w-5xl">
+                <div className="lg:w-1/2 p-6 flex flex-col justify-center items-center bg-blue-100 rounded-2xl">
+                    <h1 className="text-3xl font-bold text-blue-700 mb-4 text-center">Join CareHive</h1>
+                    <p className="text-lg text-gray-700 text-center">
+                        CareHive connects elderly individuals with compassionate caretakers.
+                    </p>
+                </div>
                 <div className="lg:w-1/2 p-6 flex flex-col justify-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
-                    >
-                        <div className="text-center">
-                            <h2 className="text-3xl font-bold text-gray-800 mb-2">Register</h2>
-                        </div>
+                    <h2 className="text-2xl font-semibold text-gray-800 text-center mb-4">Register</h2>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Full Name Field */}
                         <div>
-                            <TextField
-                                label="Full Name"
-                                name="name"
+                            <label className="block text-lg font-medium text-gray-700">Full Name</label>
+                            <input
                                 type="text"
-                                onChange={formik.handleChange}
-                                placeholder="Enter your full name"
+                                name="name"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 required
-                                startIcon={<FaUser />}
-                                value={formik.values.name}
-                                error={formik.errors.name && formik.touched.name}
-                                helperText={formik.errors.name && formik.touched.name ? formik.errors.name : ""}
+                                value={formData.name}
                             />
                         </div>
 
                         {/* Email Field */}
                         <div>
-                            <TextField
-                                label="Email"
-                                name="email"
+                            <label className="block text-lg font-medium text-gray-700">Email</label>
+                            <input
                                 type="email"
-                                onChange={formik.handleChange}
-                                placeholder="Enter your email"
+                                name="email"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 required
-                                startIcon={<FiMail />}
-                                value={formik.values.email}
-                                error={formik.errors.email && formik.touched.email}
-                                helperText={formik.errors.email && formik.touched.email ? formik.errors.email : ""}
+                                value={formData.email}
                             />
                         </div>
+
                         {/* Contact Field */}
                         <div>
-                            <TextField
-                                label="Contact"
-                                name="contact"
+                            <label className="block text-lg font-medium text-gray-700">Contact</label>
+                            <input
                                 type="text"
-                                onChange={formik.handleChange}
-                                placeholder="Enter your contact number"
+                                name="contact"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
+                                pattern="[0-9]{10}"
                                 required
-                                startIcon={<FaPhone />}
-                                value={formik.values.contact}
-                                error={formik.errors.contact && formik.touched.contact}
-                                helperText={formik.errors.contact && formik.touched.contact ? formik.errors.contact : ""}
+                                value={formData.contact}
                             />
                         </div>
 
                         {/* Gender & Date of Birth Fields */}
-                        <div className="flex items-center justify-between w-full">
+                        <div className="grid grid-cols-2 gap-6">
                             <div>
-                                <Select
-                                    label="Gender"
+                                <label className="block text-lg font-medium text-gray-700">Gender</label>
+                                <select
                                     name="gender"
-                                    options={GENDER_OPTIONS}
-                                    onChange={formik.handleChange}
+                                    className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                    onChange={handleChange}
                                     required
-                                    value={formik.values.gender}
-                                    fullWidth
-                                    error={formik.errors.gender && formik.touched.gender}
-                                    helperText={formik.errors.gender && formik.touched.gender ? formik.errors.gender : ""}
-                                />
+                                    value={formData.gender}
+                                >
+                                    <option value="">Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
                             </div>
                             <div>
-                                <DatePicker
-                                    label='Date of Birth'
-                                    name='date'
-                                    onChange={formik.handleChange}
+                                <label className="block text-lg font-medium text-gray-700">Date of Birth</label>
+                                <input
+                                    type="date"
+                                    name="date"
+                                    className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                    onChange={handleChange}
                                     required
-                                    value={formik.values.date}
-                                    fullWidth
-                                    error={formik.errors.date && formik.touched.date}
-                                    helperText={formik.errors.date && formik.touched.date ? formik.errors.date : ""}
+                                    value={formData.date}
                                 />
                             </div>
                         </div>
 
                         {/* User Type Field */}
                         <div>
-                            <Select
-                                label="User Type"
+                            <label className="block text-lg font-medium text-gray-700">User Type</label>
+                            <select
                                 name="userType"
-                                options={USER_TYPES}
-                                onChange={formik.handleChange}
-                                placeholder="Select User Type"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 required
-                                value={formik.values.userType}
-                                error={formik.errors.userType && formik.touched.userType}
-                                helperText={formik.errors.userType && formik.touched.userType ? formik.errors.userType : ""}
-                            />
+                                value={formData.userType}
+                            >
+                                <option value="">Select User Type</option>
+                                <option value="Elder">Elder</option>
+                                <option value="Caretaker">Caretaker</option>
+                            </select>
                         </div>
 
                         {/* Emergency Contact Field */}
                         <div>
-                            <TextField
-                                label="Emergency Contact"
-                                name="emergencyContact"
+                            <label className="block text-lg font-medium text-gray-700">Emergency Contact</label>
+                            <input
                                 type="text"
-                                startIcon={<FaPhone />}
-                                onChange={formik.handleChange}
-                                placeholder="Enter your emergency contact number"
+                                name="emergencyContact"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 pattern="[0-9]{10}"
                                 required
-                                value={formik.values.emergencyContact}
-                                error={formik.errors.emergencyContact && formik.touched.emergencyContact}
-                                helperText={formik.errors.emergencyContact && formik.touched.emergencyContact ? formik.errors.emergencyContact : ""}
+                                value={formData.emergencyContact}
                             />
                         </div>
 
                         {/* Password & Confirm Password Fields */}
                         <div>
-                            <TextField
-                                label="Password"
-                                name="password"
+                            <label className="block text-lg font-medium text-gray-700">Password</label>
+                            <input
                                 type="password"
-                                startIcon={<FaLock />}
-                                onChange={formik.handleChange}
-                                placeholder="Enter your password"
+                                name="password"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 required
-                                value={formik.values.password}
-                                error={formik.errors.password && formik.touched.password}
-                                helperText={formik.errors.password && formik.touched.password ? formik.errors.password : ""}
+                                value={formData.password}
                             />
                         </div>
                         <div>
-                            <TextField
-                                label="Confirm Password"
-                                name="confirmPassword"
+                            <label className="block text-lg font-medium text-gray-700">Confirm Password</label>
+                            <input
                                 type="password"
-                                onChange={formik.handleChange}
-                                placeholder="Confirm your password"
+                                name="confirmPassword"
+                                className="w-full p-4 border-2 rounded-lg text-lg focus:ring-2 focus:ring-blue-400"
+                                onChange={handleChange}
                                 required
-                                startIcon={<FaLock />}
-                                value={formik.values.confirmPassword}
-                                error={formik.errors.confirmPassword && formik.touched.confirmPassword}
-                                helperText={formik.errors.confirmPassword && formik.touched.confirmPassword ? formik.errors.confirmPassword : ""}
+                                value={formData.confirmPassword}
                             />
                         </div>
 
                         {/* Register Button */}
-                        <Button
-                            onClick={formik.handleSubmit}
-                            label="Register"
-                            variant="contained"
-                            color="primary"
-                            isLoading={formik.isSubmitting}
-                            disabled={!formik.isValid}
-                            fullWidth
-                        />
-                        {/* Login Link */}
-                        <p className="text-center mt-4 text-gray-700 text-lg">
-                            Already have an account?{" "}
-                            <Link to="/login" className="text-blue-600 font-semibold">
-                                Login
-                            </Link>
-                        </p>
-                    </motion.div>
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 text-white p-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition"
+                        >
+                            Register
+                        </button>
+                    </form>
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+
+                    {/* Login Link */}
+                    <p className="text-center mt-4 text-gray-700 text-lg">
+                        Already have an account?{" "}
+                        <Link to="/login" className="text-blue-600 font-semibold">
+                            Login
+                        </Link>
+                    </p>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };
